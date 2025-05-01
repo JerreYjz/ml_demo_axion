@@ -2,6 +2,13 @@ theory:
   emutheory.emutheory:
     path: ./cobaya/cobaya/theories/
     stop_at_error: True
+    extra_args:
+      ttfilename: 'chiTTAstautrf1dot2milnewlhcevansqrtrescalec16'
+      ttextraname: 'extrainfo_lhs_tt_96.npy'
+      tefilename: 'chiTEAstautrf1dot2milnewlhcevansqrtrescalec16'
+      teextraname: 'extrainfo_lhs_te_96.npy'
+      eefilename: 'chiEEAstautrf1dot2milnewlhcevansqrtrescalec16'
+      eeextraname: 'extrainfo_lhs_ee_96.npy'
 
 
 stop_at_error: False
