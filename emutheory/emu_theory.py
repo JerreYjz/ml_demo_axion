@@ -193,13 +193,7 @@ class TRF(nn.Module):
         modules.append(Supact(int_dim_trf))
         modules.append(Better_Attention(int_dim_trf, n_channels))
         modules.append(Better_Transformer(int_dim_trf, n_channels))
-        #modules.append(nn.Tanh())
-        #modules.append(Better_Attention(int_dim_trf, n_channels))
-        #modules.append(Better_Transformer(int_dim_trf, n_channels))
-        #modules.append(nn.Tanh())
-        #modules.append(Better_Attention(int_dim_trf, n_channels))
-        #modules.append(Better_Transformer(int_dim_trf, n_channels))
-        #modules.append(nn.Tanh())
+
         modules.append(nn.Linear(int_dim_trf, output_dim))
         modules.append(Affine())
 
@@ -239,12 +233,12 @@ class emutheory(BoltzmannBase):
         self.model2 = TRF(input_dim=6,output_dim=2999,int_dim=intdim,N_channels=nc)
         self.model3 = TRF(input_dim=6,output_dim=2999,int_dim=intdim,N_channels=nc)
 
-        #model=model.module.to(device)
+        
         self.model1 = self.model1.to(device)
         self.model2 = self.model2.to(device)
         self.model3 = self.model3.to(device)
 
-        self.model1 = nn.DataParallel(self.model1)#.cpu()
+        self.model1 = nn.DataParallel(self.model1)
         self.model2 = nn.DataParallel(self.model2)
         self.model3 = nn.DataParallel(self.model3)
 
@@ -275,7 +269,7 @@ class emutheory(BoltzmannBase):
         
 
         X = torch.Tensor(X_send).to(device)
-        #print(X)
+
         with torch.no_grad():
             X_norm=((X - X_mean) / X_std)
 
@@ -291,7 +285,7 @@ class emutheory(BoltzmannBase):
             
         return y_pred
 
-    def pcainvtrans(self,y_pred,X):
+    def scaletrans(self,y_pred,X):
         X = np.array([X["omega_b"][0],X["omega_cdm"][0],X["H_0"][0],X["ln10^{10}A_s"][0],X["n_s"][0],X["tau_reio"][0]])
         
         for i in range(len(y_pred)):
@@ -313,24 +307,22 @@ class emutheory(BoltzmannBase):
         extrainfo_TT = np.load('./cobaya/cobaya/theories/emutheory/extraaxcambTT.npy', allow_pickle=True)
         extrainfo_TE = np.load('./cobaya/cobaya/theories/emutheory/extraaxcambTE.npy', allow_pickle=True)
         extrainfo_EE = np.load('./cobaya/cobaya/theories/emutheory/extraaxcambEE.npy', allow_pickle=True)
-       # print(cmb_params)
+
         TT_rescale = self.predict(self.model1, cmb_params, extrainfo_TT)
         TE_rescale = self.predict(self.model2, cmb_params, extrainfo_TE)
         EE_rescale = self.predict(self.model3, cmb_params, extrainfo_EE)
-        #print(TT_rescale)
+
         factor=self.ell*(self.ell+1)/2/np.pi
         state["ell"] =self.ell.astype(int)
         state["tt"] = np.zeros(2551)
         state["te"] = np.zeros(2551)
         state["bb"] = np.zeros(2551)
         state["ee"] = np.zeros(2551)
-        state["tt"][2:] = self.pcainvtrans(TT_rescale, cmb_params)[0,:2549]
-        state["te"][2:] = self.pcainvtrans(TE_rescale, cmb_params)[0,:2549]
-        state["ee"][2:] = self.pcainvtrans(EE_rescale, cmb_params)[0,:2549]
+        state["tt"][2:] = self.scaletrans(TT_rescale, cmb_params)[0,:2549]
+        state["te"][2:] = self.scaletrans(TE_rescale, cmb_params)[0,:2549]
+        state["ee"][2:] = self.scaletrans(EE_rescale, cmb_params)[0,:2549]
         state["et"] = state["te"]
-        print(state["tt"])
-        #print(state["te"])
-        #print(state["ee"])
+
 
 
         return True
