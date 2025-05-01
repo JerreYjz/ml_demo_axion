@@ -168,7 +168,7 @@ class ResMLP(nn.Module):
 
 class TRF(nn.Module):
 
-    def __init__(self, input_dim, output_dim, int_dim, int_trf, N_channels):
+    def __init__(self, input_dim, output_dim, int_dim, N_channels):
 
         super(TRF, self).__init__()
 
@@ -181,7 +181,7 @@ class TRF(nn.Module):
         
         
         n_channels = N_channels
-        int_dim_trf = int_trf
+        int_dim_trf = 3200
         modules.append(nn.Linear(input_dim, int_dim))
         modules.append(ResBlock(int_dim, int_dim))
         modules.append(Supact(int_dim))
@@ -193,6 +193,13 @@ class TRF(nn.Module):
         modules.append(Supact(int_dim_trf))
         modules.append(Better_Attention(int_dim_trf, n_channels))
         modules.append(Better_Transformer(int_dim_trf, n_channels))
+        #modules.append(nn.Tanh())
+        #modules.append(Better_Attention(int_dim_trf, n_channels))
+        #modules.append(Better_Transformer(int_dim_trf, n_channels))
+        #modules.append(nn.Tanh())
+        #modules.append(Better_Attention(int_dim_trf, n_channels))
+        #modules.append(Better_Transformer(int_dim_trf, n_channels))
+        #modules.append(nn.Tanh())
         modules.append(nn.Linear(int_dim_trf, output_dim))
         modules.append(Affine())
 
@@ -200,6 +207,9 @@ class TRF(nn.Module):
         
 
     def forward(self, x):
+        #x is a cosmological parameter set you feed in the model
+        
+        
 
         out = self.trf(x)
         
@@ -207,8 +217,8 @@ class TRF(nn.Module):
 
 class emutheory(BoltzmannBase):
     aliases: dict = {
-        "omega_b" : [ "ombh2" ],
-        "omega_cdm" : [ "omch2" ],
+        "omega_b" : [ "omegabh2" ],
+        "omega_cdm" : [ "omegach2" ],
         "H_0" : [ "H0" ],
         "ln10^{10}A_s" : [ "logA" ],
         "n_s" : [ "ns" ],
@@ -225,9 +235,9 @@ class emutheory(BoltzmannBase):
         intdim = 4
         nc = 16
         device = 'cpu'
-        self.model1 = TRF(input_dim=6,output_dim=2999,int_dim=intdim, int_trf=3200,N_channels=nc)
-        self.model2 = TRF(input_dim=6,output_dim=2999,int_dim=intdim, int_trf=3200,N_channels=nc)
-        self.model3 = TRF(input_dim=6,output_dim=2999,int_dim=intdim, int_trf=3200,N_channels=nc)
+        self.model1 = TRF(input_dim=6,output_dim=2999,int_dim=intdim,N_channels=nc)
+        self.model2 = TRF(input_dim=6,output_dim=2999,int_dim=intdim,N_channels=nc)
+        self.model3 = TRF(input_dim=6,output_dim=2999,int_dim=intdim,N_channels=nc)
 
         #model=model.module.to(device)
         self.model1 = self.model1.to(device)
@@ -251,7 +261,7 @@ class emutheory(BoltzmannBase):
         self.model2.eval()
         self.model3.eval()
 
-        self.ell = np.arange(2,3001,1)
+        self.ell = np.arange(0,2551,1)
         self.lmax_theory = 3001
 
     def predict(self,model,X, extrainfo):
@@ -261,11 +271,14 @@ class emutheory(BoltzmannBase):
         Y_mean=torch.Tensor(extrainfo.item()['Y_mean']).to(device)
         Y_std=torch.Tensor(extrainfo.item()['Y_std']).to(device)
 
-        X_send = np.array([X["omega_b"],X["omega_cdm"],X["H_0"],X["ln10^{10}A_s"],X["n_s"],X["tau_reio"]])
+        X_send = np.array([X["omega_b"][0],X["omega_cdm"][0],X["H_0"][0],X["ln10^{10}A_s"][0],X["n_s"][0],X["tau_reio"][0]])
+        
 
         X = torch.Tensor(X_send).to(device)
+        #print(X)
         with torch.no_grad():
             X_norm=((X - X_mean) / X_std)
+
 
             X_norm.to(device)
 
@@ -279,7 +292,8 @@ class emutheory(BoltzmannBase):
         return y_pred
 
     def pcainvtrans(self,y_pred,X):
-        X = np.array([X["omega_b"],X["omega_cdm"],X["H_0"],X["ln10^{10}A_s"],X["n_s"],X["tau_reio"]])
+        X = np.array([X["omega_b"][0],X["omega_cdm"][0],X["H_0"][0],X["ln10^{10}A_s"][0],X["n_s"][0],X["tau_reio"][0]])
+        
         for i in range(len(y_pred)):
             y_pred[i]=y_pred[i]*(np.exp(X[3]))/(np.exp(2*X[5]))
         return y_pred
@@ -299,14 +313,25 @@ class emutheory(BoltzmannBase):
         extrainfo_TT = np.load('./cobaya/cobaya/theories/emutheory/extraaxcambTT.npy', allow_pickle=True)
         extrainfo_TE = np.load('./cobaya/cobaya/theories/emutheory/extraaxcambTE.npy', allow_pickle=True)
         extrainfo_EE = np.load('./cobaya/cobaya/theories/emutheory/extraaxcambEE.npy', allow_pickle=True)
-
+       # print(cmb_params)
         TT_rescale = self.predict(self.model1, cmb_params, extrainfo_TT)
         TE_rescale = self.predict(self.model2, cmb_params, extrainfo_TE)
         EE_rescale = self.predict(self.model3, cmb_params, extrainfo_EE)
+        #print(TT_rescale)
+        factor=self.ell*(self.ell+1)/2/np.pi
+        state["ell"] =self.ell.astype(int)
+        state["tt"] = np.zeros(2551)
+        state["te"] = np.zeros(2551)
+        state["bb"] = np.zeros(2551)
+        state["ee"] = np.zeros(2551)
+        state["tt"][2:] = self.pcainvtrans(TT_rescale, cmb_params)[0,:2549]
+        state["te"][2:] = self.pcainvtrans(TE_rescale, cmb_params)[0,:2549]
+        state["ee"][2:] = self.pcainvtrans(EE_rescale, cmb_params)[0,:2549]
+        state["et"] = state["te"]
+        print(state["tt"])
+        #print(state["te"])
+        #print(state["ee"])
 
-        state["tt"] = self.pcainvtrans(TT_rescale, cmb_params)[0,:]
-        state["te"] = self.pcainvtrans(TE_rescale, cmb_params)[0,:]
-        state["ee"] = self.pcainvtrans(EE_rescale, cmb_params)[0,:]
 
         return True
 
@@ -322,15 +347,15 @@ class emutheory(BoltzmannBase):
         #cmb_fac = self._cmb_unit_factor(units, 2.726)
         
         if ell_factor:
-            ls_fac = ls * (ls + 1.0) / (2.0 * np.pi)
+            ls_fac = 1#ls * (ls + 1.0) / (2.0 * np.pi)
         else:
             ls_fac = 1.0
         
         for k in [ "tt", "te", "ee" ]:
             cls_dict[k][ls] = cls_old[k] * ls_fac
         for k in [ "tt", "te", "ee" , "ell"]:
-            cls_dict[k] = cls_dict[k][:2508]
-        #print(cls_dict)
+            cls_dict[k] = cls_dict[k][:2558]
+        print(cls_dict)
         
         return cls_dict
 
