@@ -22,12 +22,14 @@ class emutheory(BoltzmannBase):
     }
 
     extra_args: InfoDict = { }
+    
 
     def initialize(self):
         super().initialize()
-        PATH1 = "./"+PATH+"/chiTTAstautrf1dot2milnewlhcevansqrtrescalec16"
-        PATH2 = "./"+PATH+"/chiTEAstautrf1dot2milnewlhcevansqrtrescalec16"
-        PATH3 = "./"+PATH+"/chiEEAstautrf1dot2milnewlhcevansqrtrescalec16"
+        
+        PATH1 = "./"+PATH+"/"+self.extra_args.get('ttfilename')
+        PATH2 = "./"+PATH+"/"+self.extra_args.get('tefilename')
+        PATH3 = "./"+PATH+"/"+self.extra_args.get('eefilename')
         intdim = 4
         nc = 16
         inttrf=5120
@@ -108,9 +110,9 @@ class emutheory(BoltzmannBase):
                         cmb_params[par] = [params[alias]]
                         break
 
-        extrainfo_TT = np.load('./'+PATH+'/extrainfo_lhs_tt_96.npy', allow_pickle=True)
-        extrainfo_TE = np.load('./'+PATH+'/extrainfo_lhs_te_96.npy', allow_pickle=True)
-        extrainfo_EE = np.load('./'+PATH+'/extrainfo_lhs_ee_96.npy', allow_pickle=True)
+        extrainfo_TT = np.load('./'+PATH+'/'+self.extra_args.get('ttextraname'), allow_pickle=True)
+        extrainfo_TE = np.load('./'+PATH+'/'+self.extra_args.get('teextraname'), allow_pickle=True)
+        extrainfo_EE = np.load('./'+PATH+'/'+self.extra_args.get('eeextraname'), allow_pickle=True)
 
         TT_rescale = self.predict(self.model1, cmb_params, extrainfo_TT)
         TE_rescale = self.predict(self.model2, cmb_params, extrainfo_TE)
