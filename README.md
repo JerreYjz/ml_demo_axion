@@ -1,4 +1,15 @@
-Guideline for using the codes above:
+For Using emulators for MCMC:
+
+Git Clone the folder emutheory and file axicambemu.yaml and axicambeval2.yaml into cocoa/Cocoa/cobaya/cobaya/theories.
+Run cobaya-run  ./cobaya/cobaya/theories/axicambemu.yaml -f in the directory cocoa/Cocoa.
+
+Need to download the emulator .pt files into cocoa/Cocoa/cobaya/cobaya/theories/emutheory folder.
+
+
+
+
+
+Guideline for training emulators:
 
 Step 1: Use axioncamb.py to run parallelized data vector generation for training, validation and testing sets. Plz make sure call the correct CAMB by specifying the dir for the code.
         After running it, to prevent having too many files saved, plz run the following lines in terminal
