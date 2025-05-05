@@ -31,49 +31,48 @@ class emutheory(BoltzmannBase):
         PATH1 = "./"+PATH+"/"+self.extra_args.get('ttfilename')
         PATH2 = "./"+PATH+"/"+self.extra_args.get('tefilename')
         PATH3 = "./"+PATH+"/"+self.extra_args.get('eefilename')
-        PATH4 = "./"+PATH+"/"+self.extra_args.get('dlfilename')
+
 
 
         intdim = 4
-        nlayer=4
+        nlayer = 4
         nc = 16
         inttrf=5120
         device = 'cpu'
+        intdim_simple = 1
+        nlayer_simple = 1
 
         self.model1 = TRF(input_dim=9,output_dim=4998,int_dim=intdim, int_trf=inttrf,N_channels=nc)
         self.model2 = TRF(input_dim=9,output_dim=4998,int_dim=intdim, int_trf=inttrf,N_channels=nc)
         self.model3 = TRF(input_dim=9,output_dim=4998,int_dim=intdim, int_trf=inttrf,N_channels=nc)
-        self.model4 = ResMLP(input_dim=2, output_dim=96, int_dim=intdim, N_layer=nlayer)
+
 
         
         self.model1 = self.model1.to(device)
         self.model2 = self.model2.to(device)
         self.model3 = self.model3.to(device)
-        self.model4 = self.model4.to(device)
 
         self.model1 = nn.DataParallel(self.model1)
         self.model2 = nn.DataParallel(self.model2)
         self.model3 = nn.DataParallel(self.model3)
-        self.model4 = nn.DataParallel(self.model4)
+
 
 
         self.model1.load_state_dict(torch.load(PATH1+'.pt',map_location=device))
         self.model2.load_state_dict(torch.load(PATH2+'.pt',map_location=device))
         self.model3.load_state_dict(torch.load(PATH3+'.pt',map_location=device))
-        self.model4.load_state_dict(torch.load(PATH4+'.pt',map_location=device))
 
         self.model1 = self.model1.module.to(device)
         self.model2 = self.model2.module.to(device)
         self.model3 = self.model3.module.to(device)
-        self.model4 = self.model4.module.to(device)
+
 
         self.model1.eval()
         self.model2.eval()
         self.model3.eval()
-        self.model4.eval()
 
-        self.ell = np.arange(0,2551,1)
-        self.lmax_theory = 2551
+        self.ell = np.arange(0,9052,1)
+        self.lmax_theory = 9052
 
     def predict(self,model,X, extrainfo):
         device = 'cpu'
@@ -103,37 +102,7 @@ class emutheory(BoltzmannBase):
             
         return y_pred
 
-    def predict_dl(self,model,X, extrainfo,transform_matrix):
-        device = 'cpu'
-        X_mean=torch.Tensor(extrainfo.item()['X_mean']).to(device)
-        X_std=torch.Tensor(extrainfo.item()['X_std']).to(device)
-        Y_mean=extrainfo.item()['Y_mean']
-        Y_std=extrainfo.item()['Y_std']
-        Y_mean_2=torch.Tensor(extrainfo.item()['Y_mean_2']).to(device)
-        Y_std_2=torch.Tensor(extrainfo.item()['Y_std_2']).to(device)
-        
 
-        X_send = np.array([(X["omega_b"][0]+X["omega_cdm"][0])/(X["H_0"][0]/100)**2,X["H_0"][0]])
-        
-
-        X = torch.Tensor(X_send).to(device)
-
-        with torch.no_grad():
-            X_norm=((X - X_mean) / X_std)
-
-
-
-            X_norm.to(device)
-
-            
-            pred=model(X_norm)
-            
-            
-            M_pred=pred.to(device)
-            y_pred = (M_pred.float() *Y_std_2.float()+Y_mean_2.float()).cpu().numpy()
-            y_pred = np.matmul(y_pred,transform_matrix)*Y_std+Y_mean
-            y_pred = np.exp(y_pred)-4400
-        return y_pred[0]
 
     def scaletrans(self,y_pred,X):
         X = np.array([X["omega_b"][0],X["omega_cdm"][0],X["H_0"][0],X["tau_reio"][0],X["n_s"][0],X["ln10^{10}A_s"][0]])
@@ -157,13 +126,12 @@ class emutheory(BoltzmannBase):
         extrainfo_TT = np.load('./'+PATH+'/'+self.extra_args.get('ttextraname'), allow_pickle=True)
         extrainfo_TE = np.load('./'+PATH+'/'+self.extra_args.get('teextraname'), allow_pickle=True)
         extrainfo_EE = np.load('./'+PATH+'/'+self.extra_args.get('eeextraname'), allow_pickle=True)
-        extrainfo_dl = np.load('./'+PATH+'/'+self.extra_args.get('dlextraname'), allow_pickle=True)
-        transmat_dl  = np.load('./'+PATH+'/'+self.extra_args.get('dltransmat'), allow_pickle=True)
+
 
         TT_rescale = self.predict(self.model1, cmb_params, extrainfo_TT)
         TE_rescale = self.predict(self.model2, cmb_params, extrainfo_TE)
         EE_rescale = self.predict(self.model3, cmb_params, extrainfo_EE)
-        dl         = self.predict_dl(self.model4, cmb_params, extrainfo_dl, transmat_dl)
+
 
         factor=self.ell*(self.ell+1)/2/np.pi
         state["ell"] = self.ell.astype(int)
@@ -171,16 +139,14 @@ class emutheory(BoltzmannBase):
         state["te"] = np.zeros(self.lmax_theory)
         state["bb"] = np.zeros(self.lmax_theory)
         state["ee"] = np.zeros(self.lmax_theory)
-        state["tt"][2:] = self.scaletrans(TT_rescale, cmb_params)[0,:self.lmax_theory-2]
-        state["te"][2:] = self.scaletrans(TE_rescale, cmb_params)[0,:self.lmax_theory-2]
-        state["ee"][2:] = self.scaletrans(EE_rescale, cmb_params)[0,:self.lmax_theory-2]
+        state["tt"][2:5000] = self.scaletrans(TT_rescale, cmb_params)[0]
+        state["te"][2:5000] = self.scaletrans(TE_rescale, cmb_params)[0]
+        state["ee"][2:5000] = self.scaletrans(EE_rescale, cmb_params)[0]
         state["et"] = state["te"]
         
-        state["dl"] = dl
 
-        return True
 
-    def get_Cl(self, need_ell_factor = False, units = "1", unit_included = True, Tcmb=2.7255):
+    def get_Cl(self, ell_factor = False, units = "1", unit_included = True, Tcmb=2.7255):
         cls_old = self.current_state.copy()
         
         cls_dict = { k : np.zeros(self.lmax_theory) for k in [ "tt", "te", "ee" , "et" , "bb" ] }
@@ -188,7 +154,7 @@ class emutheory(BoltzmannBase):
         
         ls = self.ell
         
-        if need_ell_factor:
+        if ell_factor:
             for k in [ "tt", "te", "ee" , "et" , "bb"]:
                 ls_fac = self.ell_factor(ls,k)
                 cls_dict[k] = cls_old[k] * ls_fac
@@ -269,22 +235,4 @@ class emutheory(BoltzmannBase):
         
         return res
 
-
-    def get_angular_diameter_distance(self,z):
-        d_l = self.current_state["dl"].copy()
-
-        z_lin = np.linspace( -0.5, 3, num=2333, endpoint=True)
-
-        d_a = d_l/(1+z_lin)**2
-
-        D_A_interpolate = interpolate.interp1d(z_lin, d_a)
-
-        print(D_A_interpolate(z))
-
-        return D_A_interpolate(z)
-
-
-
-    def get_can_support_params(self):
-        return [ "omega_b", "omega_cdm", "h", "logA", "ns", "tau_reio" ]
     
