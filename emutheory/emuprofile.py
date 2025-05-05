@@ -80,7 +80,7 @@ class EmulProfile():
             y_pred[i]=y_pred[i]*(np.exp(X[5]))/(np.exp(2*X[3]))
         return y_pred
 
-    def get_Cl(self, ell_factor=False, units = "1", unit_included = True, Tcmb=2.7255, cmb_params):
+    def get_Cl(self,cmb_params, ell_factor=False, units = "1", unit_included = True, Tcmb=2.7255):
         #cmb_params need to be a numpy array in the order of [ombh2, omch2, H0, tau, ns, logAs]
         extrainfo_TT = np.load(os.environ.get("ROOTDIR") + "/" + self.extra_args.get('ttextraname'), allow_pickle=True)
         extrainfo_TE = np.load(os.environ.get("ROOTDIR") + "/" + self.extra_args.get('teextraname'), allow_pickle=True)
