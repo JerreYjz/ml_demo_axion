@@ -262,7 +262,7 @@ class emutheory(BoltzmannBase):
             H0 = self.model7.predict(theta_array)[0]*self.extrainfo_GP.item()['Y_std'][0]+self.extrainfo_GP.item()['Y_mean'][0]
             cmb_params["H_0"]=[H0]
 
-        print(cmb_params)
+        
         TT_rescale = self.predict(self.model1, cmb_params, self.extrainfo_TT)
         TE_rescale = self.predict(self.model2, cmb_params, self.extrainfo_TE)
         EE_rescale = self.predict(self.model3, cmb_params, self.extrainfo_EE)
@@ -311,7 +311,7 @@ class emutheory(BoltzmannBase):
             
                 cls_dict[k] = cls_dict[k] * unit
         
-        print(cls_dict)
+       
         
         return cls_dict
         
