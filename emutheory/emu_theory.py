@@ -10,7 +10,7 @@ import joblib
 import scipy
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
-
+#need joblib, sklearn for GP
 PATH = os.environ.get("ML_MODEL_DIR")
 sys.path.insert(0, PATH)
 from emulator import Supact, Affine, Better_Attention, Better_Transformer, ResBlock, ResMLP, TRF
@@ -39,7 +39,7 @@ class emutheory(BoltzmannBase):
         PATH4 = "./"+PATH+"/"+self.extra_args.get('dlfilename')
         PATH5 = "./"+PATH+"/"+self.extra_args.get('rsfilename')
         PATH6 = "./"+PATH+"/"+self.extra_args.get('Hfilename')
-        PATH7 = "./"+PATH+"/"+self.extra_args.get('GPfilename')
+        PATH7 = "./"+PATH+"/"+self.extra_args.get('GPfilename')# This is the file that contains GP model for theta to H0
 
         self.extrainfo_TT = np.load('./'+PATH+'/'+self.extra_args.get('ttextraname'), allow_pickle=True)
         self.extrainfo_TE = np.load('./'+PATH+'/'+self.extra_args.get('teextraname'), allow_pickle=True)
@@ -50,7 +50,7 @@ class emutheory(BoltzmannBase):
         self.transmat_rs  = np.load('./'+PATH+'/'+self.extra_args.get('rstransmat'), allow_pickle=True)
         self.extrainfo_H = np.load('./'+PATH+'/'+self.extra_args.get('Hextraname'), allow_pickle=True)
         self.transmat_H  = np.load('./'+PATH+'/'+self.extra_args.get('Htransmat'), allow_pickle=True)
-        self.extrainfo_GP = np.load('./'+PATH+'/'+self.extra_args.get('GPextraname'), allow_pickle=True)
+        self.extrainfo_GP = np.load('./'+PATH+'/'+self.extra_args.get('GPextraname'), allow_pickle=True) #extra info file for GP of theta to H0
 
 
         intdim = 4
@@ -67,7 +67,7 @@ class emutheory(BoltzmannBase):
         self.model4 = ResMLP(input_dim=2, output_dim=96, int_dim=intdim, N_layer=nlayer)
         self.model5 = ResMLP(input_dim=3, output_dim=96, int_dim=intdim_simple, N_layer=nlayer_simple)
         self.model6 = ResMLP(input_dim=2, output_dim=96, int_dim=intdim_simple, N_layer=nlayer_simple)
-        self.model7 = joblib.load(PATH7)
+        self.model7 = joblib.load(PATH7) #loading GP model for theta to H0
         
 
         
